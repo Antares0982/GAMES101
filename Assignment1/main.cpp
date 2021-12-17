@@ -9,15 +9,16 @@ Eigen::Matrix4f get_rotation(Vector3f axis, float angle) {
     Eigen::Matrix4f ans;
     float c = std::cos(angle / 180.0 * MY_PI);
     float s = std::sin(angle / 180.0 * MY_PI);
+    float c_m1 = 1 - c;
     float x = axis.x();
     float y = axis.y();
     float z = axis.z();
     float xy = x * y;
     float yz = y * z;
     float zx = z * x;
-    ans << c + (1 - c) * x * x, (1 - c) * xy - c * z, (1 - c) * zx + s * y, 0,
-            (1 - c) * xy + s * z, c + (1 - c) * y * y, (1 - c) * yz - s * x, 0,
-            (1 - c) * zx - s * y, (1 - c) * yz + s * x, c + (1 - c) * z * z, 0,
+    ans << c + c_m1 * x * x, c_m1 * xy - c * z, c_m1 * zx + s * y, 0,
+            c_m1 * xy + s * z, c + c_m1 * y * y, c_m1 * yz - s * x, 0,
+            c_m1 * zx - s * y, c_m1 * yz + s * x, c + c_m1 * z * z, 0,
             0, 0, 0, 1;
     return ans;
 }
@@ -120,8 +121,6 @@ int main(int argc, const char **argv) {
         image.convertTo(image, CV_8UC3, 1.0f);
         cv::imshow("image", image);
         key = cv::waitKey(10);
-
-        std::cout << "frame count: " << frame_count++ << '\n';
 
         if (key == 'a') {
             angle += 10;
