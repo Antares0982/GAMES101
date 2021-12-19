@@ -11,3 +11,5 @@ To build all projects:
 ./buildall.sh
 ```
 
+*How to use: follow the instructions of READMEs in each assignment*
+

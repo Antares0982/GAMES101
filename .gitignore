@@ -1,6 +1,9 @@
 # self defined
+.vscode/
 *.pdf
 build/
+*.obj
+!Assignment3/**/*.obj
 
 # Clion
 .idea/
@@ -13,7 +16,7 @@ cmake-build-debug/
 *.slo
 *.lo
 *.o
-*.obj
+# *.obj # order matters
 
 # Precompiled Headers
 *.gch
