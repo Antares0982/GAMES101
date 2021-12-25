@@ -3,7 +3,7 @@
 *.pdf
 build/
 *.obj
-!Assignment3/**/*.obj
+!Assignment*/**/*.obj
 
 # Clion
 .idea/
