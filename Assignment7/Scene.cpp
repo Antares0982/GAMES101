@@ -62,7 +62,7 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const {
     Intersection itsec = intersect(ray);
     if (!itsec.happened) return {0, 0, 0};
 
-    if (itsec.m->hasEmission()) { return {1}; }
+    if (itsec.m->hasEmission()) return {1};
 
     float light_pdf;
     Intersection wherelight;
@@ -70,6 +70,7 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const {
 
     Vector3f L_dir{0};
 
+    // wo 与 N 内积为正
     auto wo = normalize(-ray.direction);
     auto &N = itsec.normal;
     auto ws = normalize(wherelight.coords - itsec.coords);
@@ -82,7 +83,7 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const {
         if (itsectolight.m && itsectolight.m->hasEmission()) {
             Vector3f ev = itsec.m->eval(wo, ws, N);
             float dominant = itsectolight.distance * itsectolight.distance * light_pdf;
-            L_dir = wherelight.emit * ev * std::abs(dotProduct(ws, N)) * std::abs(dotProduct(ws, NN)) / dominant;
+            L_dir = wherelight.emit * ev * std::abs(dotProduct(ws, N)) * std::abs(dotProduct(ws, NN)) / std::max(dominant, 1e-6f);
         }
     }
 
@@ -91,7 +92,7 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const {
 
     auto wi = itsec.m->sample(wo, N);
     auto rayindir = Ray(itsec.coords, wi);
-    Vector3f L_indir = castRay(rayindir, depth + 1) * itsec.m->eval(wi, wo, N) * dotProduct(wi, N) / (itsec.m->pdf(wi, wo, N) * RussianRoulette);
+    Vector3f L_indir = castRay(rayindir, depth + 1) * itsec.m->eval(wi, wo, N) * dotProduct(wi, N) / (std::max(1e-6f, itsec.m->pdf(wi, wo, N)) * RussianRoulette);
 
     return L_dir + L_indir;
 }

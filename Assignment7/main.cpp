@@ -11,7 +11,6 @@
 // maximum recursion depth, field-of-view, etc.). We then call the render
 // function().
 int main(int argc, char **argv) {
-
     // Change the definition here to change resolution
     Scene scene(784, 784);
 
@@ -23,20 +22,35 @@ int main(int argc, char **argv) {
     white->Kd = Vector3f(0.725f, 0.71f, 0.68f);
     Material *light = new Material(DIFFUSE, (8.0f * Vector3f(0.747f + 0.058f, 0.747f + 0.258f, 0.747f) + 15.6f * Vector3f(0.740f + 0.287f, 0.740f + 0.160f, 0.740f) + 18.4f * Vector3f(0.737f + 0.642f, 0.737f + 0.159f, 0.737f)));
     light->Kd = Vector3f(0.65f);
+    Material *microfacet = new Material(MICROFACET, Vector3f(0.0f));
+    microfacet->Ks = Vector3f(0.4f);
+    // microfacet->Kd = Vector3f(0.1f);
+    microfacet->Kd = Vector3f(0.2f, 0.2f, 0.05f);
+    Material *microfacet_2 = new Material(MICROFACET, Vector3f(0.0f));
+    microfacet_2->Ks = Vector3f(0.4f);
+    // microfacet_2->Kd = Vector3f(0.1f);
+    microfacet_2->Kd = Vector3f(0.05f, 0.05f, 0.2f);
+
 
     MeshTriangle floor("../models/cornellbox/floor.obj", white);
-    MeshTriangle shortbox("../models/cornellbox/shortbox.obj", white);
-    MeshTriangle tallbox("../models/cornellbox/tallbox.obj", white);
+    //    MeshTriangle shortbox("../models/cornellbox/shortbox.obj", white);
+    //    MeshTriangle tallbox("../models/cornellbox/tallbox.obj", white);
     MeshTriangle left("../models/cornellbox/left.obj", red);
     MeshTriangle right("../models/cornellbox/right.obj", green);
     MeshTriangle light_("../models/cornellbox/light.obj", light);
 
+
+    Sphere sphere_l(Vector3f(150, 100, 300), 100.0f, microfacet);
+    Sphere sphere_r(Vector3f(400, 100, 300), 100.0f, microfacet_2);
+
     scene.Add(&floor);
-    scene.Add(&shortbox);
-    scene.Add(&tallbox);
+    //    scene.Add(&shortbox);
+    //    scene.Add(&tallbox);
     scene.Add(&left);
     scene.Add(&right);
     scene.Add(&light_);
+    scene.Add(&sphere_l);
+    scene.Add(&sphere_r);
 
     scene.buildBVH();
 

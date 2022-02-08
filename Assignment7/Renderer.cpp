@@ -10,10 +10,8 @@
 #include <mutex>
 #include <thread>
 
-#define spp 64 // 16
-#define MAX_THREADS 8
-
-static std::mutex mtx;
+#define spp 512 // 16
+#define MAX_THREADS 16
 
 struct multithreadargs {
     const Scene *scene;
@@ -25,7 +23,7 @@ inline float deg2rad(const float &deg) { return deg * M_PI / 180.0; }
 
 const float EPSILON = 0.00001;
 
-static volatile int progress = 0;
+static volatile std::atomic_int progress = 0;
 static int totaltask = 0;
 
 void do_render_multi_thread(multithreadargs *arg) {
@@ -47,9 +45,7 @@ void do_render_multi_thread(multithreadargs *arg) {
         for (int k = 0; k < spp; k++) {
             (*frameptr)[index] += sceneptr->castRay(Ray(eye_pos, dir), 0) / spp;
         }
-        mtx.lock();
         progress++;
-        mtx.unlock();
     }
 }
 

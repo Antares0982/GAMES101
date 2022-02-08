@@ -31,6 +31,7 @@ inline bool solveQuadratic(const float &a, const float &b, const float &c, float
     return true;
 }
 
+// return random float in [0,1)
 inline float get_random_float() {
     return dist(rng);
 }
