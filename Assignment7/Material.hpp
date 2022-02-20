@@ -14,14 +14,9 @@ enum MaterialType {
 };
 
 class Material {
-private:
-    // Compute reflection direction
-    Vector3f reflect(const Vector3f &I, const Vector3f &N) const {
-        //        return I - 2 * dotProduct(I, N) * N;
-        // assume dot(I,N)>0
-        return -I + 2 * dotProduct(I, N) * N;
-    }
 
+
+private:
     // Compute refraction direction using Snell's law
     //
     // We need to handle with care the two possible situations:
@@ -77,7 +72,15 @@ private:
         // kt = 1 - kr;
     }
 
-    Vector3f toWorld(const Vector3f &a, const Vector3f &N) {
+public: // static member function
+    // Compute reflection direction
+    static Vector3f reflect(const Vector3f &I, const Vector3f &N) {
+        // return I - 2 * dotProduct(I, N) * N;
+        // assume dot(I,N)>0
+        return -I + 2 * dotProduct(I, N) * N;
+    }
+
+    static Vector3f toWorld(const Vector3f &a, const Vector3f &N) {
         Vector3f B, C;
         if (std::fabs(N.x) > std::fabs(N.y)) {
             float invLen = 1.0f / std::sqrt(N.x * N.x + N.z * N.z);
@@ -107,9 +110,9 @@ public:
     inline bool hasEmission();
 
     // sample a ray by Material properties
-    inline Vector3f sample(const Vector3f &wi, const Vector3f &N);
-    // given a ray, calculate the PdF of this ray
-    inline float pdf(const Vector3f &wi, const Vector3f &wo, const Vector3f &N);
+    inline std::pair<Vector3f, float> sample(const Vector3f &wi, const Vector3f &N);
+    // given a ray, calculate the PdF of this ray, deprecated
+    // inline float pdf(const Vector3f &wi, const Vector3f &wo, const Vector3f &N);
     // given a ray, calculate the contribution of this ray
     inline Vector3f eval(const Vector3f &wi, const Vector3f &wo, const Vector3f &N);
 };
@@ -134,83 +137,97 @@ Vector3f Material::getColorAt(double u, double v) {
     return Vector3f();
 }
 
+
+inline std::pair<Vector3f, float> random_sample(const Vector3f &wi, const Vector3f &N) {
+    // uniform sample on the hemisphere
+    float x_1 = get_random_float(), x_2 = get_random_float();
+    float z = std::fabs(1.0f - x_1); //2.0f * x_1); z \in (0,1]
+    float r = std::sqrt(1.0f - z * z), phi = 2 * M_PI * x_2;
+    Vector3f localRay(r * std::cos(phi), r * std::sin(phi), z);
+    return std::make_pair(Material::toWorld(localRay, N), 0.5f / M_PI);
+}
+
 // 重要性采样的范围，实际上是弧度制，范围应在[0, Pi/2)选取
-#define SAMPLE_ANGLE 0.08f
+#define SAMPLE_ANGLE 0.525f
 
 // 重要性采样的概率，设为(1.f - cosf(SAMPLE_ANGLE))则大致和均匀随机采样没有区别
 // 有`SAMPLE_INPORTANCE`的概率在镜面反射射线方向`SAMPLE_ANGLE`附近采样
 #define SAMPLE_INPORTANCE 0.3f
 
-Vector3f Material::sample(const Vector3f &wi, const Vector3f &N) {
+inline std::pair<Vector3f, float> importance_sample(const Vector3f &wi, const Vector3f &N) {
+    const float angle = SAMPLE_ANGLE;
+
+    // SAMPLE_INPORTANCE 概率在附近采样
+    float x_1 = get_random_float();
+    float z;
+    bool near_sample = x_1 < SAMPLE_INPORTANCE;
+    if (near_sample) {
+        // 附近采样
+        x_1 /= SAMPLE_INPORTANCE;        // cast x_1 to `[0,1)`
+        z = 1 - x_1 * (1 - cosf(angle)); // z \in (cosf(angle), 1]
+    } else {
+        // 远处采样
+        x_1 = (1 - x_1) / (1.f - SAMPLE_INPORTANCE); // cast x_1 to `(0,1]`
+        z = cosf(angle) * x_1;                       // z \in (0, cosf(angle)]
+    }
+    float r = sqrtf(1 - z * z);
+    float phi = 2 * M_PI * get_random_float();
+    auto ans = Material::toWorld(Vector3f(r * cosf(phi), r * sinf(phi), z), Material::reflect(wi, N));
+
+    return std::make_pair((dotProduct(ans, N) < 0.f) ? -ans : ans, near_sample ? (SAMPLE_INPORTANCE * 0.5f * M_1_PI / (1 - cosf(angle))) : ((1.f - SAMPLE_INPORTANCE) * 0.5f * M_1_PI / cosf(angle)));
+}
+
+std::pair<Vector3f, float> Material::sample(const Vector3f &wi, const Vector3f &N) {
     switch (m_type) {
         case DIFFUSE: {
-            // uniform sample on the hemisphere
-            float x_1 = get_random_float(), x_2 = get_random_float();
-            float z = std::fabs(1.0f - 1.0f * x_1); //2.0f * x_1);
-            float r = std::sqrt(1.0f - z * z), phi = 2 * M_PI * x_2;
-            Vector3f localRay(r * std::cos(phi), r * std::sin(phi), z);
-            return toWorld(localRay, N);
+            // 一般随机采样
+            return random_sample(wi, N);
         }
         case MICROFACET: {
             // 重要性采样
             // assumptions: wi, N are normalized
-            auto ct = acosf(dotProduct(wi, N));
-            float angle = SAMPLE_ANGLE;
+            // return importance_sample(wi, N);
 
-            // SAMPLE_INPORTANCE 概率在附近采样
-            float x_1 = get_random_float();
-            float z;
-            if (x_1 < SAMPLE_INPORTANCE) {
-                // 附近采样
-                x_1 /= SAMPLE_INPORTANCE;
-                z = 1 - x_1 * (1 - cosf(angle));
-            } else {
-                // 远处采样
-                x_1 = 1.f - x_1;
-                x_1 /= 1.f - SAMPLE_INPORTANCE;
-                z = cosf(angle) * x_1;
-            }
-            float r = sqrtf(1 - z * z);
-            float phi = 2 * M_PI * get_random_float();
-            auto ans = toWorld(Vector3f(r * cosf(phi), r * sinf(phi), z), reflect(wi, N));
-            if (dotProduct(ans, N) < 0.f) return -ans;
-            return ans;
+            // 一般随机采样
+            return random_sample(wi, N);
         }
     }
     throw std::exception();
 }
 
-float Material::pdf(const Vector3f &wi, const Vector3f &wo, const Vector3f &N) {
-    //wi 是被采样出来的
-    switch (m_type) {
-        case DIFFUSE: {
-            // uniform sample probability 1 / (2 * PI)
-            if (dotProduct(wo, N) > 0.0f)
-                return 0.5f / M_PI;
-            else
-                return 0.0f;
-            break;
-        }
-        case MICROFACET: {
-            if (dotProduct(wo, N) <= 0.f) return 0.f;
-            auto ct = acosf(dotProduct(wi, N));
-            float angle = SAMPLE_ANGLE;
-
-            auto wii = normalize(wi);
-            auto refl = reflect(wo, N);
-            if (std::abs(dotProduct(wii, refl)) > cosf(angle))
-                return SAMPLE_INPORTANCE * 0.5f * M_1_PI / (1 - cosf(angle));
-            return (1.f - SAMPLE_INPORTANCE) * 0.5f * M_1_PI / cosf(angle);
-        }
-    }
-    throw std::exception();
-}
+// deprecated
+//float Material::pdf(const Vector3f &wi, const Vector3f &wo, const Vector3f &N) {
+//    //wi 是被采样出来的
+//    switch (m_type) {
+//        case DIFFUSE: {
+//            // uniform sample probability 1 / (2 * PI)
+//            if (dotProduct(wo, N) > 0.0f)
+//                return 0.5f / M_PI;
+//            else
+//                return 0.0f;
+//            // break;
+//        }
+//        case MICROFACET: {
+//            if (dotProduct(wo, N) <= 0.f) return 0.f;
+//            auto ct = acosf(dotProduct(wi, N));
+//            const float angle = SAMPLE_ANGLE;
+//
+//            auto wii = normalize(wi);
+//            auto refl = reflect(wo, N);
+//            if (std::abs(dotProduct(wii, refl)) > cosf(angle))
+//                return SAMPLE_INPORTANCE * 0.5f * M_1_PI / (1 - cosf(angle));
+//            return (1.f - SAMPLE_INPORTANCE) * 0.5f * M_1_PI / cosf(angle);
+//        }
+//    }
+//    throw std::exception();
+//}
 
 // change these to see other microfacet materials
+
 #define alpha2 0.04f
 #define IOR 1.85f
 
-inline float lam(float th) {
+constexpr float lam(const float &th) {
     float t = 1.f / (th * th) - 1.f;
     return (-1.f + sqrtf(1.f + alpha2 * t)) / 2.0f;
 }
@@ -223,9 +240,8 @@ Vector3f Material::eval(const Vector3f &wi, const Vector3f &wo, const Vector3f &
             if (cosalpha > 0.0f) {
                 Vector3f diffuse = Kd / M_PI;
                 return diffuse;
-            } else
-                return {0.0f};
-            break;
+            }
+            return {0.0f};
         }
         case MICROFACET: {
             if (dotProduct(N, wo) <= 0.f || dotProduct(N, wi) <= 0.f) return {0.f};
@@ -248,10 +264,9 @@ Vector3f Material::eval(const Vector3f &wi, const Vector3f &wo, const Vector3f &
             float fres;
             fresnel(-wi, N, IOR, fres);
             float kd = 1 - fres;
-            float ans = fres * dh * mask / std::max(1e-6f, 4 * idot * wdot);
-            //                        std::cout << mask << std::endl;
-            Vector3f diffuse = Ks * ans + Kd * kd * M_1_PI;
-            return diffuse;
+            float ans = fres * dh * mask / std::max(EPSILON, 4 * idot * wdot);
+
+            return Ks * ans + Kd * kd * M_1_PI;
         }
     }
     throw std::exception();

@@ -1,8 +1,9 @@
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "cppcoreguidelines-narrowing-conversions"
 //
 // Created by goksu on 2/25/20.
 //
+
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "cppcoreguidelines-narrowing-conversions"
 
 #include "Renderer.hpp"
 #include "Scene.hpp"
@@ -10,36 +11,37 @@
 #include <mutex>
 #include <thread>
 
-#define spp 512 // 16
+
 #define MAX_THREADS 16
+const int spp = 8; // 16
+
+const Scene *sceneptr = nullptr;
 
 struct multithreadargs {
-    const Scene *scene;
     std::vector<Vector3f> *arg1;
     int arg2;
 };
 
-inline float deg2rad(const float &deg) { return deg * M_PI / 180.0; }
+constexpr float deg2rad(const float &deg) { return deg * M_PI / 180.0; }
 
-const float EPSILON = 0.00001;
+const float EPSILON = 0.000001;
 
 static volatile std::atomic_int progress = 0;
 static int totaltask = 0;
 
 void do_render_multi_thread(multithreadargs *arg) {
-    auto &[sceneptr, frameptr, index] = *arg;
+    auto &&[frameptr, index] = *arg;
 
     Vector3f eye_pos(278, 273, -800);
     float scale = std::tan(deg2rad(sceneptr->fov * 0.5));
     float imageAspectRatio = sceneptr->width / (float) sceneptr->height;
 
-    int maxgrid = sceneptr->width * sceneptr->height;
+    const int maxgrid = sceneptr->width * sceneptr->height;
     for (; index < maxgrid; index += MAX_THREADS) {
         int j = index / sceneptr->width;
         int i = index % sceneptr->width;
-        float x = (2 * (i + 0.5) / (float) sceneptr->width - 1) *
-                  imageAspectRatio * scale;
-        float y = (1 - 2 * (j + 0.5) / (float) sceneptr->height) * scale;
+        float x = (2 * (i + 0.5f) / (float) sceneptr->width - 1) * imageAspectRatio * scale;
+        float y = (1 - 2 * (j + 0.5f) / (float) sceneptr->height) * scale;
 
         Vector3f dir = normalize(Vector3f(-x, y, 1));
         for (int k = 0; k < spp; k++) {
@@ -70,8 +72,12 @@ void Renderer::Render(const Scene &scene) {
     std::thread ths[MAX_THREADS];
 
     multithreadargs arg[MAX_THREADS];
+
+    // initialize args
+    progress = 0;
+    sceneptr = &scene;
     for (int i = 0; i < MAX_THREADS; ++i) {
-        arg[i] = multithreadargs{&scene, &framebuffer, i};
+        arg[i] = multithreadargs{&framebuffer, i};
         ths[i] = std::thread(do_render_multi_thread, &arg[i]);
         ths[i].detach();
     }
@@ -83,24 +89,10 @@ void Renderer::Render(const Scene &scene) {
             UpdateProgress(progresscount / (float) totaltask);
         }
     }
+    // task done
     UpdateProgress(1.f);
 
-    //    for (uint32_t j = 0; j < scene.height; ++j) {
-    //        for (uint32_t i = 0; i < scene.width; ++i) {
-    //            // generate primary ray direction
-    //            float x = (2 * (i + 0.5) / (float) scene.width - 1) *
-    //                      imageAspectRatio * scale;
-    //            float y = (1 - 2 * (j + 0.5) / (float) scene.height) * scale;
-    //
-    //            Vector3f dir = normalize(Vector3f(-x, y, 1));
-    //            for (int k = 0; k < spp; k++) {
-    //                framebuffer[m] += scene.castRay(Ray(eye_pos, dir), 0) / spp;
-    //            }
-    //            m++;
-    //        }
-    //        UpdateProgress(j / (float) scene.height);
-    //    }
-    //    UpdateProgress(1.f);
+    sceneptr = nullptr;
 
     // save framebuffer to file
     FILE *fp = fopen("binary.ppm", "wb");

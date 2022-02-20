@@ -90,9 +90,10 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const {
     if (get_random_float() > RussianRoulette)
         return L_dir;
 
-    auto wi = itsec.m->sample(wo, N);
+    auto wi_pdf = itsec.m->sample(wo, N);
+    auto &&wi = wi_pdf.first;
     auto rayindir = Ray(itsec.coords, wi);
-    Vector3f L_indir = castRay(rayindir, depth + 1) * itsec.m->eval(wi, wo, N) * dotProduct(wi, N) / (std::max(1e-6f, itsec.m->pdf(wi, wo, N)) * RussianRoulette);
+    Vector3f L_indir = castRay(rayindir, depth + 1) * itsec.m->eval(wi, wo, N) * dotProduct(wi, N) / (std::max(1e-6f, wi_pdf.second) * RussianRoulette);
 
     return L_dir + L_indir;
 }

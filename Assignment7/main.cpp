@@ -22,14 +22,25 @@ int main(int argc, char **argv) {
     white->Kd = Vector3f(0.725f, 0.71f, 0.68f);
     Material *light = new Material(DIFFUSE, (8.0f * Vector3f(0.747f + 0.058f, 0.747f + 0.258f, 0.747f) + 15.6f * Vector3f(0.740f + 0.287f, 0.740f + 0.160f, 0.740f) + 18.4f * Vector3f(0.737f + 0.642f, 0.737f + 0.159f, 0.737f)));
     light->Kd = Vector3f(0.65f);
+
     Material *microfacet = new Material(MICROFACET, Vector3f(0.0f));
     microfacet->Ks = Vector3f(0.4f);
     // microfacet->Kd = Vector3f(0.1f);
-    microfacet->Kd = Vector3f(0.2f, 0.2f, 0.05f);
+    // microfacet->Kd = Vector3f(0.2f, 0.2f, 0.05f);
+    // pink one
+    microfacet->Kd = Vector3f(1.f, 105.f / 255.f, 180.f / 255.f);
+
     Material *microfacet_2 = new Material(MICROFACET, Vector3f(0.0f));
     microfacet_2->Ks = Vector3f(0.4f);
     // microfacet_2->Kd = Vector3f(0.1f);
-    microfacet_2->Kd = Vector3f(0.05f, 0.05f, 0.2f);
+    //microfacet_2->Kd = Vector3f(0.05f, 0.05f, 0.2f);
+    // blue one
+    microfacet_2->Kd = Vector3f(0.f, 191.f / 255.f, 1.f);
+
+    Material *microfacet_3 = new Material(MICROFACET, Vector3f(0.0f));
+    microfacet_3->Ks = Vector3f(0.4f);
+    // golden one
+    microfacet_3->Kd = Vector3f(1.f, 215.f / 255.f, 0.f);
 
 
     MeshTriangle floor("../models/cornellbox/floor.obj", white);
@@ -40,8 +51,9 @@ int main(int argc, char **argv) {
     MeshTriangle light_("../models/cornellbox/light.obj", light);
 
 
-    Sphere sphere_l(Vector3f(150, 100, 300), 100.0f, microfacet);
-    Sphere sphere_r(Vector3f(400, 100, 300), 100.0f, microfacet_2);
+    Sphere sphere_l(Vector3f(150, 100, 400), 100.0f, microfacet);
+    Sphere sphere_r(Vector3f(400, 100, 400), 100.0f, microfacet_2);
+    Sphere sphere_m(Vector3f(275, 100, 400 - 157), 100.0f, microfacet_3);
 
     scene.Add(&floor);
     //    scene.Add(&shortbox);
@@ -49,8 +61,10 @@ int main(int argc, char **argv) {
     scene.Add(&left);
     scene.Add(&right);
     scene.Add(&light_);
+
     scene.Add(&sphere_l);
     scene.Add(&sphere_r);
+    scene.Add(&sphere_m);
 
     scene.buildBVH();
 
@@ -64,6 +78,6 @@ int main(int argc, char **argv) {
     std::cout << "Time taken: " << std::chrono::duration_cast<std::chrono::hours>(stop - start).count() << " hours\n";
     std::cout << "          : " << std::chrono::duration_cast<std::chrono::minutes>(stop - start).count() << " minutes\n";
     std::cout << "          : " << std::chrono::duration_cast<std::chrono::seconds>(stop - start).count() << " seconds\n";
-
+    std::cout << "Average time spent per sample: " << (float) std::chrono::duration_cast<std::chrono::seconds>(stop - start).count() / spp << " seconds\n";
     return 0;
 }
