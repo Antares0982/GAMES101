@@ -6,6 +6,10 @@
 #undef M_PI
 #define M_PI 3.141592653589793f
 
+#ifndef M_1_PI
+#define M_1_PI 0.3183098861837907f
+#endif
+
 extern const int spp;
 extern const float EPSILON;
 const float kInfinity = std::numeric_limits<float>::max();

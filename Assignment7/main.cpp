@@ -42,14 +42,21 @@ int main(int argc, char **argv) {
     // golden one
     microfacet_3->Kd = Vector3f(1.f, 215.f / 255.f, 0.f);
 
-
+    #if WIN32 || _WIN32
+    MeshTriangle floor("..\\..\\..\\models\\cornellbox\\floor.obj", white);
+    // MeshTriangle shortbox("..\\..\\..\\models\\cornellbox\\shortbox.obj", white);
+    // MeshTriangle tallbox("..\\..\\..\\models\\cornellbox\\tallbox.obj", white);
+    MeshTriangle left("..\\..\\..\\models\\cornellbox\\left.obj", red);
+    MeshTriangle right("..\\..\\..\\models\\cornellbox\\right.obj", green);
+    MeshTriangle light_("..\\..\\..\\models\\cornellbox\\light.obj", light);
+    #else
     MeshTriangle floor("../models/cornellbox/floor.obj", white);
-    //    MeshTriangle shortbox("../models/cornellbox/shortbox.obj", white);
-    //    MeshTriangle tallbox("../models/cornellbox/tallbox.obj", white);
+    // MeshTriangle shortbox("../models/cornellbox/shortbox.obj", white);
+    // MeshTriangle tallbox("../models/cornellbox/tallbox.obj", white);
     MeshTriangle left("../models/cornellbox/left.obj", red);
     MeshTriangle right("../models/cornellbox/right.obj", green);
     MeshTriangle light_("../models/cornellbox/light.obj", light);
-
+    #endif
 
     Sphere sphere_l(Vector3f(150, 100, 400), 100.0f, microfacet);
     Sphere sphere_r(Vector3f(400, 100, 400), 100.0f, microfacet_2);

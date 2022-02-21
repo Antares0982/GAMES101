@@ -5,6 +5,9 @@ build/
 *.obj
 !Assignment*/**/*.obj
 
+# Visual Studio
+.vs/
+
 # Clion
 .idea/
 cmake-build-debug/

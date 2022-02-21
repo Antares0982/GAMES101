@@ -186,10 +186,10 @@ std::pair<Vector3f, float> Material::sample(const Vector3f &wi, const Vector3f &
         case MICROFACET: {
             // 重要性采样
             // assumptions: wi, N are normalized
-            // return importance_sample(wi, N);
+            return importance_sample(wi, N);
 
             // 一般随机采样
-            return random_sample(wi, N);
+            // return random_sample(wi, N);
         }
     }
     throw std::exception();
@@ -227,9 +227,13 @@ std::pair<Vector3f, float> Material::sample(const Vector3f &wi, const Vector3f &
 #define alpha2 0.04f
 #define IOR 1.85f
 
-constexpr float lam(const float &th) {
-    float t = 1.f / (th * th) - 1.f;
-    return (-1.f + sqrtf(1.f + alpha2 * t)) / 2.0f;
+#ifndef _WIN32
+constexpr
+#else 
+inline
+#endif // !_WIN32
+float lam(const float &th) {
+    return (-1.f + sqrtf(1.f + alpha2 * (1.f / (th * th) - 1.f))) / 2.0f;
 }
 
 Vector3f Material::eval(const Vector3f &wi, const Vector3f &wo, const Vector3f &N) {
