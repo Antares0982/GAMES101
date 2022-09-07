@@ -88,6 +88,7 @@ void Renderer::Render(const Scene &scene) {
             progresscount = progress;
             UpdateProgress(progresscount / (float) totaltask);
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds (100));
     }
     // task done
     UpdateProgress(1.f);
